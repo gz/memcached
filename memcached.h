@@ -9,6 +9,10 @@
 #include "config.h"
 #endif
 
+#ifdef MEMCACHED_INTERNAL_BENCHMARK
+#include "benchmark_internal.h"
+#endif
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -86,8 +90,12 @@
 #define BIN_MAX_EXTLEN 20 // length of the _incr command is currently the longest.
 
 /* Initial power multiplier for the hash table */
+#ifdef MEMCACHED_INTERNAL_BENCHMARK
+#include "benchmark_internal.h"
+#else
 #define HASHPOWER_DEFAULT 16
 #define HASHPOWER_MAX 32
+#endif
 
 /*
  * We only reposition items in the LRU queue if they haven't been repositioned
