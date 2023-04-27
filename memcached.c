@@ -5844,6 +5844,10 @@ int main (int argc, char **argv) {
         exit(EX_USAGE);
     }
 
+#ifdef MEMCACHED_INTERNAL_BENCHMARK
+    internal_benchmark_config(&settings);
+#endif
+
 
 #ifdef TLS
     /*
@@ -6251,6 +6255,10 @@ int main (int argc, char **argv) {
 
     /* Initialize the uriencode lookup table. */
     uriencode_init();
+
+    #ifdef MEMCACHED_DEBUG_INTERNAL_BENCHMARK
+    internal_benchmark_run(&settings);
+    #endif
 
     /* enter the event loop */
     while (!stop_main_loop) {
