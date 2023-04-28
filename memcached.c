@@ -1742,9 +1742,9 @@ enum store_item_type do_store_item(item *it, int comm, LIBEVENT_THREAD *t, const
     if (stored == STORED && cas != NULL) {
         *cas = ITEM_get_cas(it);
     }
-    LOGGER_LOG(t->l, LOG_MUTATIONS, LOGGER_ITEM_STORE, NULL,
-            stored, comm, ITEM_key(it), it->nkey, it->nbytes, it->exptime,
-            ITEM_clsid(it), t->cur_sfd);
+    // LOGGER_LOG(t->l, LOG_MUTATIONS, LOGGER_ITEM_STORE, NULL,
+    //         stored, comm, ITEM_key(it), it->nkey, it->nbytes, it->exptime,
+    //         ITEM_clsid(it), t->cur_sfd);
 
     return stored;
 }
