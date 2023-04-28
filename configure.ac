@@ -848,7 +848,7 @@ then
 elif test "$GCC" = "yes"
 then
   GCC_VERSION=`$CC -dumpversion`
-  CFLAGS="$CFLAGS -Wall -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls"
+  CFLAGS="$CFLAGS -Wall -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -fopenmp"
   if test "x$enable_asan" = "xyes"; then
     CFLAGS="$CFLAGS -fsanitize=address"
   fi

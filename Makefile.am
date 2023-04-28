@@ -9,6 +9,7 @@ testapp_SOURCES = testapp.c util.c util.h stats_prefix.c stats_prefix.h jenkins_
 timedrun_SOURCES = timedrun.c
 
 memcached_SOURCES = memcached.c memcached.h \
+                    benchmark_internal.c benchmark_internal.h \
                     hash.c hash.h \
                     jenkins_hash.c jenkins_hash.h \
                     murmur3_hash.c murmur3_hash.h \
@@ -78,10 +79,10 @@ memcached_SOURCES += tls.c tls.h
 endif
 
 memcached_debug_SOURCES = $(memcached_SOURCES)
-memcached_CPPFLAGS = -DNDEBUG
+memcached_CPPFLAGS = -DNDEBUG -fopenmp
 memcached_debug_LDADD = @PROFILER_LDFLAGS@
 memcached_debug_CFLAGS = @PROFILER_FLAGS@
-
+memcached_LDFLAGS = -fopenmp
 memcached_LDADD =
 memcached_DEPENDENCIES =
 memcached_debug_DEPENDENCIES =

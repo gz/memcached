@@ -6221,8 +6221,8 @@ int main (int argc, char **argv) {
     /* Initialize the uriencode lookup table. */
     uriencode_init();
 
-    #ifdef MEMCACHED_DEBUG_INTERNAL_BENCHMARK
-    internal_benchmark_run(&settings);
+    #ifdef MEMCACHED_INTERNAL_BENCHMARK
+    internal_benchmark_run(&settings, main_base);
     #endif
 
     /* enter the event loop */
