@@ -1,4 +1,5 @@
-#ifdef BENCHMARK_INTERNAL_H_
+#ifndef BENCHMARK_INTERNAL_H_
+#define BENCHMARK_INTERNAL_H_ 1
 
 #ifdef EXTSTORE
 #error extstore is not supported
@@ -29,7 +30,7 @@
 
 // size of the hash table
 #define HASHPOWER_DEFAULT 16    // the required configuration settings
-#define HASHPOWER_MAX 32        // the required configuration settings
+#define HASHPOWER_MAX 20        // the required configuration settings
 
 #define BENCHMARK_USED_SLAB_PAGE_SIZE (1UL << 21)
 #define BENCHMARK_SLAB_PREALLOC_SIZE (8UL << 30)
@@ -83,5 +84,11 @@
 #define BENCHMARK_MAX_KEYS (1UL << (HASHPOWER_MAX - 3))
 #define BENCHMARK_QUERIES_PER_THREAD (1024UL * 1000UL * 1000UL)
 
-void internal_benchmark_run(struct settings *settings);
+struct settings;
+struct event_base;
+
+void internal_benchmark_run(struct settings *settings, struct event_base *main_base);
 void internal_benchmark_config(struct settings *settings);
+
+
+#endif

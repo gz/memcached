@@ -1,9 +1,20 @@
+#define _GNU_SOURCE
+#include <sched.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <event.h>
+
+
 #include "benchmark_internal.h"
 #include "memcached.h"
-#include <stdio.h>
+
+
+// ./configure --disable-extstore --enable-static
 
 void internal_benchmark_config(struct settings* settings)
 {
+    fprintf(stderr, "configurting internal benchmark\n");
     // we use our own threads
     settings->num_threads = 1;
     settings->maxbytes = BENCHMARK_SLAB_PREALLOC_SIZE;
@@ -16,7 +27,7 @@ void internal_benchmark_config(struct settings* settings)
     settings->slab_reassign = false;
     settings->idle_timeout = false;
     settings->item_size_max = 1024 * 1024;
-    settings->slab_page_size = USED_SLAB_PAGE_SIZE;
+    settings->slab_page_size = BENCHMARK_USED_SLAB_PAGE_SIZE;
 }
 
 struct element {
@@ -24,20 +35,22 @@ struct element {
     char data[BENCHMARK_ELEMENT_SIZE - sizeof(uint64_t)];
 };
 
-void internal_benchmark_run(struct settings* settings)
+void internal_benchmark_run(struct settings* settings, struct event_base *main_base)
 {
+    printf("------------------------------------------");
+
     fprintf(stderr, "=====================================\n");
     fprintf(stderr, "INTERNAL BENCHMARK STARTING\n");
     fprintf(stderr, "=====================================\n");
 
 #define KEY_STRING "my-key-0x%016lx"
 #define KEY_LENGTH 26
-
+    omp_set_num_threads(1);
     size_t num_threads = omp_get_num_threads();
-    conn* my_conns = calloc(num_threads, sizeof(*my_conn));
-
+    conn** my_conns = calloc(num_threads, sizeof(*my_conns));
     for (size_t i = 0; i < num_threads; i++) {
-        conns[i] = conn_new(i, 0, 0, 0, 0, NULL);
+        my_conns[i] = conn_new(i, conn_listening, 0, 0, local_transport, main_base, NULL, 0, ascii_prot);
+        my_conns[i]->thread = malloc(sizeof(LIBEVENT_THREAD));
     }
 
     struct timeval start, end;
@@ -71,19 +84,19 @@ void internal_benchmark_run(struct settings* settings)
 
 #pragma omp for
         for (size_t i = 0; i < BENCHMARK_MAX_KEYS; i++) {
-            // printf("SET[%zu]: key=%s, len=%zu\n", i, mkey, strlen(mkey));
             item* it = item_alloc((char*)&i, sizeof(i), 0, 0, BENCHMARK_ITEM_VALUE_SIZE);
             if (!it) {
-                // printf("Item was NULL! %zu\n", i);
+                printf("Item was NULL! %zu\n", i);
                 continue;
             }
-
             memset(ITEM_data(it), 0, BENCHMARK_ITEM_VALUE_SIZE);
-
             elms[i].key = i;
             uintptr_t ptr = (uintptr_t)&elms[i];
             memcpy(ITEM_data(it), &ptr, sizeof(uintptr_t));
-            store_item(it, NREAD_SET, myconn);
+            uint64_t cas = 0;
+            if(store_item(it, NREAD_SET, myconn->thread, &cas, CAS_NO_STALE)) {
+                myconn->cas = cas;
+            }
             counter++;
         }
     }
@@ -92,7 +105,6 @@ void internal_benchmark_run(struct settings* settings)
 
     gettimeofday(&start, NULL);
 
-    size_t num_threads = omp_get_num_threads();
     size_t num_queries = 0;
 // for (size_t i = 0; i < 2; i++) {
 #pragma omp parallel reduction(+ \
@@ -109,14 +121,14 @@ void internal_benchmark_run(struct settings* settings)
         size_t g_seed = (214013UL * thread_id + 2531011UL);
 
 #pragma omp for
-        for (size_t i = 0; i < (num_threads * QUERIES_PER_THREAD); i++) {
+        for (size_t i = 0; i < (num_threads * BENCHMARK_QUERIES_PER_THREAD); i++) {
             size_t idx = (i + (g_seed >> 16)) % (BENCHMARK_MAX_KEYS);
             g_seed = (214013UL * g_seed + 2531011UL);
 
             // char mkey[64];
             // snprintf(mkey, 64, KEY_STRING,  idx);
             //  printf("GET: key=%s, len=%zu\n", mkey, strlen(mkey));
-            item* it = item_get((char*)&idx, sizeof(idx), myconn, DONT_UPDATE);
+            item* it = item_get((char*)&idx, sizeof(idx), myconn->thread, DONT_UPDATE);
             if (!it) {
                 unknown++;
             } else {
@@ -140,12 +152,9 @@ void internal_benchmark_run(struct settings* settings)
     gettimeofday(&end, NULL);
 
 
-
-    double sec = (end.tv_sec - start.tv_sec) + (end.tv_usec - end.tv_usec) * 1000000;
-
     fprintf(stderr, "benchmark took %lu seconds\n", end.tv_sec - start.tv_sec);
     fprintf(stderr, "benchmark took %lu queries / second\n", num_queries / (end.tv_sec - start.tv_sec));
-    fprintf(stderr, "benchmark executed %lu / %lu queries\n", num_queries, (num_threads * QUERIES_PER_THREAD));
+    fprintf(stderr, "benchmark executed %lu / %lu queries\n", num_queries, (num_threads * BENCHMARK_QUERIES_PER_THREAD));
 
     exit(0);
 
