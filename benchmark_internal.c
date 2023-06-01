@@ -1,9 +1,9 @@
-#define _GNU_SOURCE
-#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <event.h>
+#include <sched.h>
+#include <pthread.h>
 
 
 #include "benchmark_internal.h"
@@ -75,11 +75,18 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
         /* pin threads */
         int thread_id = omp_get_thread_num();
 
+
+#ifdef __linux__
         cpu_set_t my_set;
         CPU_ZERO(&my_set);
         CPU_SET(thread_id, &my_set);
-        sched_setaffinity(0, sizeof(cpu_set_t), &my_set);
-
+        pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &my_set);
+#else
+        cpuset_t *my_set = cpuset_create();
+        cpuset_zero(my_set);
+        cpuset_set(thread_id, my_set);
+        pthread_setaffinity_np(pthread_self(), cpuset_size(my_set), my_set);
+#endif
         conn* myconn = my_conns[thread_id];
 
 #pragma omp for
