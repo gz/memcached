@@ -5911,6 +5911,7 @@ int main (int argc, char **argv) {
         }
     }
 
+#ifndef MEMCACHED_INTERNAL_BENCHMARK
     /* lose root privileges if we have them */
     if (getuid() == 0 || geteuid() == 0) {
         if (username == 0 || *username == '\0') {
@@ -5940,6 +5941,7 @@ int main (int argc, char **argv) {
             exit(EX_OSERR);
         }
     }
+#endif
 
     /* Initialize Sasl if -S was specified */
     if (settings.sasl) {
