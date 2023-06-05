@@ -167,7 +167,7 @@
 #define SIZEOF_VOID_P 8
 
 /* Set to nonzero if you want to compile a statically linked binary */
-#define STATIC 1
+/* #undef STATIC */
 
 /* Define to 1 if all of the C90 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for
