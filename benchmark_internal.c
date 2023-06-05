@@ -45,7 +45,6 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
 #define KEY_STRING "my-key-0x%016lx"
 #define KEY_LENGTH 26
-    omp_set_num_threads(1);
     size_t num_threads = omp_get_num_threads();
     conn** my_conns = calloc(num_threads, sizeof(*my_conns));
     for (size_t i = 0; i < num_threads; i++) {
@@ -54,7 +53,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
     }
 
     struct timeval start, end;
-
+    fprintf(stderr, "number of threads: %zu\n", omp_get_num_threads());
     fprintf(stderr, "element size: %zu bytes\n", sizeof(struct element));
     fprintf(stderr, "number of keys: %zu\n", BENCHMARK_MAX_KEYS);
     fprintf(stderr, "allocating %zu bytes (%zu GB) for the element array\n",
