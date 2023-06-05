@@ -17,7 +17,7 @@ void internal_benchmark_config(struct settings* settings)
     fprintf(stderr, "configurting internal benchmark\n");
     // we use our own threads
     settings->num_threads = 1;
-    settings->maxbytes = BENCHMARK_SLAB_PREALLOC_SIZE;
+    settings->maxbytes = settings->x_benchmark_mem * sizeof(struct element);
 
     //
     settings->use_cas = true;
