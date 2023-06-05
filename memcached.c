@@ -5029,7 +5029,7 @@ int main (int argc, char **argv) {
         {"extended", required_argument, 0, 'o'},
         {"napi-ids", required_argument, 0, 'N'},
 #ifdef MEMCACHED_INTERNAL_BENCHMARK
-        {"x-benchmark-mem", required_argument, 1024*1024, 'x'},
+        {"x-benchmark-mem", required_argument, 0, 'x'},
 #endif
         {0, 0, 0, 0}
     };

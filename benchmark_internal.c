@@ -2,13 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <event.h>
-#include <sched.h>
 #include <pthread.h>
+#ifdef __linux__
+#define _GNU_SOURCE             /* See feature_test_macros(7) */
+#include <sched.h>
+#endif
+
 
 
 #include "benchmark_internal.h"
 #include "memcached.h"
 
+struct element {
+    uint64_t key;
+    char data[BENCHMARK_ELEMENT_SIZE - sizeof(uint64_t)];
+};
 
 // ./configure --disable-extstore --enable-static
 
@@ -17,7 +25,7 @@ void internal_benchmark_config(struct settings* settings)
     fprintf(stderr, "configurting internal benchmark\n");
     // we use our own threads
     settings->num_threads = 1;
-    settings->maxbytes = settings->x_benchmark_mem * sizeof(struct element);
+    settings->maxbytes = settings->x_benchmark_mem;
 
     //
     settings->use_cas = true;
@@ -30,10 +38,7 @@ void internal_benchmark_config(struct settings* settings)
     settings->slab_page_size = BENCHMARK_USED_SLAB_PAGE_SIZE;
 }
 
-struct element {
-    uint64_t key;
-    char data[BENCHMARK_ELEMENT_SIZE - sizeof(uint64_t)];
-};
+
 
 void internal_benchmark_run(struct settings* settings, struct event_base *main_base)
 {
@@ -45,7 +50,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
 #define KEY_STRING "my-key-0x%016lx"
 #define KEY_LENGTH 26
-    size_t num_threads = omp_get_num_threads();
+    size_t num_threads = omp_get_num_procs();
     conn** my_conns = calloc(num_threads, sizeof(*my_conns));
     for (size_t i = 0; i < num_threads; i++) {
         my_conns[i] = conn_new(i, conn_listening, 0, 0, local_transport, main_base, NULL, 0, ascii_prot);
@@ -59,12 +64,12 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
     }
 
     struct timeval start, end;
-    fprintf(stderr, "number of threads: %zu\n", omp_get_num_threads());
+    fprintf(stderr, "number of threads: %zu\n", num_threads);
     fprintf(stderr, "element size: %zu bytes\n", sizeof(struct element));
     fprintf(stderr, "number of keys: %zu\n", num_items);
-    fprintf(stderr, "allocating %zu bytes (%zu GB) for the element array\n",
+    fprintf(stderr, "allocating %zu bytes (%zu MB) for the element array\n",
         num_items * sizeof(struct element),
-        (num_items * sizeof(struct element)) >> 30);
+        (num_items * sizeof(struct element)) >> 20);
 
     struct element* elms = calloc(num_items, sizeof(struct element));
 
@@ -80,12 +85,11 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
         /* pin threads */
         int thread_id = omp_get_thread_num();
 
-
 #ifdef __linux__
-        cpu_set_t my_set;
-        CPU_ZERO(&my_set);
-        CPU_SET(thread_id, &my_set);
-        pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &my_set);
+        // cpu_set_t my_set;
+        // CPU_ZERO(&my_set);
+        // CPU_SET(thread_id, &my_set);
+        // pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &my_set);
 #else
         /* BSD/RUMP kernel doesn't do this! */
         // cpuset_t *my_set = cpuset_create();
