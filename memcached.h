@@ -563,6 +563,9 @@ struct settings {
 #ifdef SOCK_COOKIE_ID
     uint32_t sock_cookie_id;
 #endif
+#ifdef MEMCACHED_INTERNAL_BENCHMARK
+    size_t x_benchmark_mem;
+#endif
 };
 
 extern struct stats stats;

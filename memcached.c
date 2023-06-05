@@ -295,6 +295,9 @@ static void settings_init(void) {
 #ifdef SOCK_COOKIE_ID
     settings.sock_cookie_id = 0;
 #endif
+#ifdef MEMCACHED_INTERNAL_BENCHMARK
+    settings.x_benchmark_mem = 1024*1024;
+#endif
 }
 
 extern pthread_mutex_t conn_lock;
@@ -4981,6 +4984,9 @@ int main (int argc, char **argv) {
           "e:"  /* mmap path for external item memory */
           "o:"  /* Extended generic options */
           "N:"  /* NAPI ID based thread selection */
+#ifdef MEMCACHED_INTERNAL_BENCHMARK
+          "x:"  /* number of memory */
+#endif
           ;
 
     /* process arguments */
@@ -5022,6 +5028,9 @@ int main (int argc, char **argv) {
         {"memory-file", required_argument, 0, 'e'},
         {"extended", required_argument, 0, 'o'},
         {"napi-ids", required_argument, 0, 'N'},
+#ifdef MEMCACHED_INTERNAL_BENCHMARK
+        {"x-benchmark-mem", required_argument, 1024*1024, 'x'},
+#endif
         {0, 0, 0, 0}
     };
     int optindex;
@@ -5031,6 +5040,11 @@ int main (int argc, char **argv) {
     while (-1 != (c = getopt(argc, argv, shortopts))) {
 #endif
         switch (c) {
+#ifdef MEMCACHED_INTERNAL_BENCHMARK
+        case 'x':
+            settings.x_benchmark_mem = ((size_t)atoi(optarg)) * 1024 * 1024;
+            break;
+#endif
         case 'A':
             /* enables "shutdown" command */
             settings.shutdown_command = true;
