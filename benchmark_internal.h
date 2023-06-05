@@ -18,8 +18,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Benchmark Configuration Settings
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-#define LOW_MEMORY 1
-// #define MED_MEMORY 2
+// #define LOW_MEMORY 1
+#define MED_MEMORY 2
 // #define LARGE_MEMORY 3
 
 
@@ -81,7 +81,7 @@
 
 
 // the number of keys
-#define BENCHMARK_MAX_KEYS (1UL << (HASHPOWER_MAX - 3))
+// #define BENCHMARK_MAX_KEYS (1UL << (HASHPOWER_MAX - 3))
 #define BENCHMARK_QUERIES_PER_THREAD (1024UL * 1000UL * 1000UL)
 
 struct settings;

@@ -52,21 +52,27 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
         my_conns[i]->thread = malloc(sizeof(LIBEVENT_THREAD));
     }
 
+    size_t num_items = settings->x_benchmark_mem / (sizeof(struct element) + sizeof(void *));
+    if (num_items < 100) {
+        fprintf(stderr, "WARNING: too little elements\n");
+        num_items = 100;
+    }
+
     struct timeval start, end;
     fprintf(stderr, "number of threads: %zu\n", omp_get_num_threads());
     fprintf(stderr, "element size: %zu bytes\n", sizeof(struct element));
-    fprintf(stderr, "number of keys: %zu\n", BENCHMARK_MAX_KEYS);
+    fprintf(stderr, "number of keys: %zu\n", num_items);
     fprintf(stderr, "allocating %zu bytes (%zu GB) for the element array\n",
-        BENCHMARK_MAX_KEYS * sizeof(struct element),
-        (BENCHMARK_MAX_KEYS * sizeof(struct element)) >> 30);
+        num_items * sizeof(struct element),
+        (num_items * sizeof(struct element)) >> 30);
 
-    struct element* elms = calloc(BENCHMARK_MAX_KEYS, sizeof(struct element));
+    struct element* elms = calloc(num_items, sizeof(struct element));
 
     size_t counter = 0;
 
     fprintf(stderr, "Populate the database\n");
 
-    fprintf(stderr, "Populating %zu / %zu key-value pairs:\n", counter, BENCHMARK_MAX_KEYS);
+    fprintf(stderr, "Populating %zu / %zu key-value pairs:\n", counter, num_items);
 /* prepopulate the thing */
 #pragma omp parallel reduction(+ \
                                : counter)
@@ -90,7 +96,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
         conn* myconn = my_conns[thread_id];
 
 #pragma omp for
-        for (size_t i = 0; i < BENCHMARK_MAX_KEYS; i++) {
+        for (size_t i = 0; i < num_items; i++) {
             item* it = item_alloc((char*)&i, sizeof(i), 0, 0, BENCHMARK_ITEM_VALUE_SIZE);
             if (!it) {
                 printf("Item was NULL! %zu\n", i);
@@ -107,7 +113,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
             counter++;
         }
     }
-    fprintf(stderr, "Populated %zu / %zu key-value pairs:\n", counter, BENCHMARK_MAX_KEYS);
+    fprintf(stderr, "Populated %zu / %zu key-value pairs:\n", counter, num_items);
     fprintf(stderr, "=====================================\n");
 
     gettimeofday(&start, NULL);
@@ -129,7 +135,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
 #pragma omp for
         for (size_t i = 0; i < (num_threads * BENCHMARK_QUERIES_PER_THREAD); i++) {
-            size_t idx = (i + (g_seed >> 16)) % (BENCHMARK_MAX_KEYS);
+            size_t idx = (i + (g_seed >> 16)) % (num_items);
             g_seed = (214013UL * g_seed + 2531011UL);
 
             // char mkey[64];
