@@ -3,10 +3,6 @@
 #include <string.h>
 #include <event.h>
 #include <pthread.h>
-#ifdef __linux__
-#define _GNU_SOURCE             /* See feature_test_macros(7) */
-#include <sched.h>
-#endif
 
 
 
@@ -27,7 +23,6 @@ void internal_benchmark_config(struct settings* settings)
     settings->num_threads = 1;
     settings->maxbytes = settings->x_benchmark_mem;
 
-    //
     settings->use_cas = true;
     settings->lru_maintainer_thread = false;
     settings->hashpower_init = HASHPOWER_DEFAULT;
@@ -36,6 +31,12 @@ void internal_benchmark_config(struct settings* settings)
     settings->idle_timeout = false;
     settings->item_size_max = 1024 * 1024;
     settings->slab_page_size = BENCHMARK_USED_SLAB_PAGE_SIZE;
+    printf("------------------------------------------");
+    fprintf(stderr, " - x_benchmark_mem = %zu\n", settings->x_benchmark_mem);
+    fprintf(stderr, " - maxbytes = %zu\n", settings->maxbytes);
+    fprintf(stderr, " - slab_page_size = %u\n", settings->hashpower_init);
+    fprintf(stderr, " - hashpower_init = %u\n", settings->slab_page_size);
+    printf("------------------------------------------");
 }
 
 
