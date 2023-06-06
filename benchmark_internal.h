@@ -18,9 +18,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Benchmark Configuration Settings
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // #define LOW_MEMORY 1
-#define MED_MEMORY 2
+// #define MED_MEMORY 2
 // #define LARGE_MEMORY 3
+#define NROS_MEMORY 4
 
 
 #ifdef LOW_MEMORY
@@ -30,7 +32,7 @@
 
 // size of the hash table
 #define HASHPOWER_DEFAULT 16    // the required configuration settings
-#define HASHPOWER_MAX 20        // the required configuration settings
+#define HASHPOWER_MAX 26        // the required configuration settings
 
 #define BENCHMARK_USED_SLAB_PAGE_SIZE (1UL << 21)
 #define BENCHMARK_SLAB_PREALLOC_SIZE (8UL << 30)
@@ -72,6 +74,19 @@
 /// THIS IS THE AMOUNT FOR THE HASH TABLE ITEM
 #define BENCHMARK_ITEM_VALUE_SIZE 64
 
+#elif defined(NROS_MEMORY)
+
+// size of the hash table
+#define HASHPOWER_DEFAULT 16    // the required configuration settings
+#define HASHPOWER_MAX 26        // the required configuration settings
+
+#define BENCHMARK_USED_SLAB_PAGE_SIZE (1UL << 21)
+
+/// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
+#define BENCHMARK_ELEMENT_SIZE (3 * sizeof(void *))
+/// THIS IS THE AMOUNT FOR THE HASH TABLE ITEM
+#define BENCHMARK_ITEM_VALUE_SIZE (16)
+
 #else
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // ERROR CASE
@@ -82,7 +97,7 @@
 
 // the number of keys
 // #define BENCHMARK_MAX_KEYS (1UL << (HASHPOWER_MAX - 3))
-#define BENCHMARK_QUERIES_PER_THREAD (1024UL * 1000UL * 1000UL)
+#define BENCHMARK_QUERIES_PER_THREAD (512UL * 1000UL * 1000UL)
 
 struct settings;
 struct event_base;
