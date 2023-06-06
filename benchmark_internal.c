@@ -18,10 +18,22 @@ struct element {
 
 void internal_benchmark_config(struct settings* settings)
 {
-    fprintf(stderr, "configurting internal benchmark\n");
+    fprintf(stderr, "=====================================\n");
+    fprintf(stderr, "INTERNAL BENCHMARK CONFIGURE\n");
+    fprintf(stderr, "=====================================\n");
+
     // we use our own threads
     settings->num_threads = 1;
-    settings->maxbytes = settings->x_benchmark_mem;
+
+    // calculate the number of items
+    size_t num_items = settings->x_benchmark_mem / (sizeof(struct element) + sizeof(void *));
+    if (num_items < 100) {
+        fprintf(stderr, "WARNING: too little elements\n");
+        num_items = 100;
+    }
+
+    // calculate the maximum number of bytes
+    settings->maxbytes = 2*num_items * (sizeof(item) + 16 + BENCHMARK_ITEM_VALUE_SIZE);
 
     settings->use_cas = true;
     settings->lru_maintainer_thread = false;
@@ -29,13 +41,13 @@ void internal_benchmark_config(struct settings* settings)
 
     settings->slab_reassign = false;
     settings->idle_timeout = false;
-    settings->item_size_max = 1024 * 1024;
+    settings->item_size_max = 1024;
     settings->slab_page_size = BENCHMARK_USED_SLAB_PAGE_SIZE;
     printf("------------------------------------------");
-    fprintf(stderr, " - x_benchmark_mem = %zu\n", settings->x_benchmark_mem);
-    fprintf(stderr, " - maxbytes = %zu\n", settings->maxbytes);
-    fprintf(stderr, " - slab_page_size = %u\n", settings->hashpower_init);
-    fprintf(stderr, " - hashpower_init = %u\n", settings->slab_page_size);
+    fprintf(stderr, " - x_benchmark_mem = %zu MB\n", settings->x_benchmark_mem >> 20);
+    fprintf(stderr, " - maxbytes = %zu MB\n", settings->maxbytes >> 20);
+    fprintf(stderr, " - slab_page_size = %u kB\n", settings->slab_page_size >> 10);
+    fprintf(stderr, " - hashpower_init = %u\n", settings->hashpower_init);
     printf("------------------------------------------");
 }
 
@@ -78,7 +90,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
     fprintf(stderr, "Populate the database\n");
 
-    fprintf(stderr, "Populating %zu / %zu key-value pairs:\n", counter, num_items);
+    fprintf(stderr, "Populating %zu / %zu key-value pairs.\n", counter, num_items);
 /* prepopulate the thing */
 #pragma omp parallel reduction(+ \
                                : counter)
@@ -169,12 +181,14 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
     }
     gettimeofday(&end, NULL);
 
+    struct timeval elapsed;
+    timersub(&end, &start, &elapsed);
 
-    fprintf(stderr, "benchmark took %lu seconds\n", end.tv_sec - start.tv_sec);
-    fprintf(stderr, "benchmark took %lu queries / second\n", num_queries / (end.tv_sec - start.tv_sec));
+    uint64_t elapsed_us = (elapsed.tv_sec * 1000000) + elapsed.tv_usec;
+
+    fprintf(stderr, "benchmark took %lu ms\n", elapsed_us / 1000);
+    fprintf(stderr, "benchmark took %lu queries / second\n", num_queries / (elapsed.tv_sec));
     fprintf(stderr, "benchmark executed %lu / %lu queries\n", num_queries, (num_threads * BENCHMARK_QUERIES_PER_THREAD));
-
-    exit(0);
 
     //}
     /*
