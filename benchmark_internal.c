@@ -61,8 +61,6 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
     fprintf(stderr, "INTERNAL BENCHMARK STARTING\n");
     fprintf(stderr, "=====================================\n");
 
-#define KEY_STRING "my-key-0x%016lx"
-#define KEY_LENGTH 26
     size_t num_threads = omp_get_num_procs();
     conn** my_conns = calloc(num_threads, sizeof(*my_conns));
     for (size_t i = 0; i < num_threads; i++) {
@@ -70,6 +68,10 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
         my_conns[i]->thread = malloc(sizeof(LIBEVENT_THREAD));
     }
 
+    // set the number of threads to the amount of processors we have
+    omp_set_num_threads(num_threads);
+
+    // calculate the amount of items to fit within memory.
     size_t num_items = settings->x_benchmark_mem / (sizeof(struct element) + sizeof(void *));
     if (num_items < 100) {
         fprintf(stderr, "WARNING: too little elements\n");
