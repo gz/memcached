@@ -34,7 +34,7 @@
 #define HASHPOWER_DEFAULT 16    // the required configuration settings
 #define HASHPOWER_MAX 26        // the required configuration settings
 
-#define BENCHMARK_USED_SLAB_PAGE_SIZE (1UL << 21)
+#define BENCHMARK_USED_SLAB_PAGE_SIZE (64UL << 21)
 #define BENCHMARK_SLAB_PREALLOC_SIZE (8UL << 30)
 
 /// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
@@ -50,7 +50,7 @@
 #define HASHPOWER_DEFAULT 30
 #define HASHPOWER_MAX 32
 
-#define BENCHMARK_USED_SLAB_PAGE_SIZE (1UL << 30)
+#define BENCHMARK_USED_SLAB_PAGE_SIZE (64UL << 21)
 #define BENCHMARK_SLAB_PREALLOC_SIZE (64UL << 30)
 /// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
 #define BENCHMARK_ELEMENT_SIZE 64
@@ -67,7 +67,7 @@
 #define HASHPOWER_DEFAULT 35
 #define HASHPOWER_MAX 35
 
-#define BENCHMARK_USED_SLAB_PAGE_SIZE (1UL << 32)
+#define BENCHMARK_USED_SLAB_PAGE_SIZE (64UL << 21)
 #define BENCHMARK_SLAB_PREALLOC_SIZE (512UL << 30)
 /// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
 #define BENCHMARK_ELEMENT_SIZE 128
@@ -78,14 +78,14 @@
 
 // size of the hash table
 #define HASHPOWER_DEFAULT 16    // the required configuration settings
-#define HASHPOWER_MAX 26        // the required configuration settings
+#define HASHPOWER_MAX 32        // the required configuration settings
 
-#define BENCHMARK_USED_SLAB_PAGE_SIZE (1UL << 21)
+#define BENCHMARK_USED_SLAB_PAGE_SIZE (64UL << 21)
 
 /// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
 #define BENCHMARK_ELEMENT_SIZE (3 * sizeof(void *))
 /// THIS IS THE AMOUNT FOR THE HASH TABLE ITEM
-#define BENCHMARK_ITEM_VALUE_SIZE (16)
+#define BENCHMARK_ITEM_VALUE_SIZE (32)
 
 #else
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -565,6 +565,8 @@ struct settings {
 #endif
 #ifdef MEMCACHED_INTERNAL_BENCHMARK
     size_t x_benchmark_mem;
+    size_t x_benchmark_queries;
+    size_t x_benchmark_write_ratio;
 #endif
 };
 
