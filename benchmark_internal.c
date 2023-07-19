@@ -138,7 +138,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 #endif
         conn* myconn = my_conns[thread_id];
 
-#pragma omp for
+#pragma omp for schedule(static, 1024)
         for (size_t i = 0; i < num_items; i++) {
             item* it = item_alloc((char*)&i, sizeof(i), 0, 0, BENCHMARK_ITEM_VALUE_SIZE);
             if (!it) {
@@ -154,7 +154,11 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
                 myconn->cas = cas;
             }
             counter++;
+            if (counter % 25000000 == 0) {
+                fprintf(stderr, "populate: thread %d added %zu elements. \n", thread_id, counter);
+            }
         }
+        fprintf(stderr, "populate: thread %d done. \n", thread_id);
     }
 
     gettimeofday(&end, NULL);
@@ -183,7 +187,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
         size_t g_seed = (214013UL * thread_id + 2531011UL);
 
-#pragma omp for
+#pragma omp for schedule(static)
         for (size_t i = 0; i < (num_threads * settings->x_benchmark_queries); i++) {
             size_t idx = (i + (g_seed >> 16)) % (num_items);
             g_seed = (214013UL * g_seed + 2531011UL);
