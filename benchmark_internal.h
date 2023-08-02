@@ -24,6 +24,9 @@
 // #define LARGE_MEMORY 3
 #define NROS_MEMORY 4
 
+/// THIS IS THE AMOUNT FOR THE HASH TABLE ITEM
+#define BENCHMARK_ITEM_VALUE_SIZE 64
+#define BENCHMARK_ITEM_KEY_SIZE 8
 
 #ifdef LOW_MEMORY
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,11 +40,6 @@
 #define BENCHMARK_USED_SLAB_PAGE_SIZE (64UL << 21)
 #define BENCHMARK_SLAB_PREALLOC_SIZE (8UL << 30)
 
-/// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
-#define BENCHMARK_ELEMENT_SIZE (2 * sizeof(void *))
-/// THIS IS THE AMOUNT FOR THE HASH TABLE ITEM
-#define BENCHMARK_ITEM_VALUE_SIZE (128 - 65)
-
 #elif defined(MED_MEMORY)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // MEd MEMORY (150G)
@@ -52,10 +50,6 @@
 
 #define BENCHMARK_USED_SLAB_PAGE_SIZE (64UL << 21)
 #define BENCHMARK_SLAB_PREALLOC_SIZE (64UL << 30)
-/// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
-#define BENCHMARK_ELEMENT_SIZE 64
-/// THIS IS THE AMOUNT FOR THE HASH TABLE ITEM
-#define BENCHMARK_ITEM_VALUE_SIZE 32
 
 #elif defined(LARGE_MEMORY)
 
@@ -69,10 +63,6 @@
 
 #define BENCHMARK_USED_SLAB_PAGE_SIZE (64UL << 21)
 #define BENCHMARK_SLAB_PREALLOC_SIZE (512UL << 30)
-/// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
-#define BENCHMARK_ELEMENT_SIZE 128
-/// THIS IS THE AMOUNT FOR THE HASH TABLE ITEM
-#define BENCHMARK_ITEM_VALUE_SIZE 64
 
 #elif defined(NROS_MEMORY)
 
@@ -81,11 +71,6 @@
 #define HASHPOWER_MAX 32        // the required configuration settings
 
 #define BENCHMARK_USED_SLAB_PAGE_SIZE (64UL << 21)
-
-/// THIS IS THE AMOUNT FOR THE ELEMENT ARRAY
-#define BENCHMARK_ELEMENT_SIZE (3 * sizeof(void *))
-/// THIS IS THE AMOUNT FOR THE HASH TABLE ITEM
-#define BENCHMARK_ITEM_VALUE_SIZE (32)
 
 #else
 ////////////////////////////////////////////////////////////////////////////////////////////////////

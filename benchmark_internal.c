@@ -9,12 +9,7 @@
 #include "benchmark_internal.h"
 #include "memcached.h"
 
-struct element {
-    uint64_t key;
-    char data[BENCHMARK_ELEMENT_SIZE - sizeof(uint64_t)];
-};
-
-#define ITEM_SIZE (sizeof(item) + sizeof(size_t) + BENCHMARK_ITEM_VALUE_SIZE + 16)
+#define ITEM_SIZE (sizeof(item) + sizeof(size_t) + BENCHMARK_ITEM_VALUE_SIZE + BENCHMARK_ITEM_KEY_SIZE)
 
 // ./configure --disable-extstore --enable-static
 
@@ -24,18 +19,15 @@ void internal_benchmark_config(struct settings* settings)
     fprintf(stderr, "INTERNAL BENCHMARK CONFIGURE\n");
     fprintf(stderr, "=====================================\n");
 
-    // we use our own threads
-    settings->num_threads = 1;
-
     // calculate the number of items
-    size_t num_items = settings->x_benchmark_mem / (sizeof(struct element) + sizeof(void *) + ITEM_SIZE);
+    size_t num_items = settings->x_benchmark_mem / ITEM_SIZE;
     if (num_items < 100) {
         fprintf(stderr, "WARNING: too little elements\n");
         num_items = 100;
     }
 
     // calculate the maximum number of bytes
-    settings->maxbytes =  settings->x_benchmark_mem;
+    settings->maxbytes = settings->x_benchmark_mem;
 
     settings->use_cas = true;
     settings->lru_maintainer_thread = false;
@@ -65,12 +57,23 @@ void internal_benchmark_config(struct settings* settings)
 
 void internal_benchmark_run(struct settings* settings, struct event_base *main_base)
 {
+    if (settings->x_benchmark_no_run) {
+        fprintf(stderr, "=====================================\n");
+        fprintf(stderr, "INTERNAL BENCHMARK SKIPPING\n");
+        fprintf(stderr, "=====================================\n");
+        return;
+    }
+
     printf("------------------------------------------");
 
     fprintf(stderr, "=====================================\n");
     fprintf(stderr, "INTERNAL BENCHMARK STARTING\n");
     fprintf(stderr, "=====================================\n");
 
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Establish the connections
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     size_t num_threads = omp_get_num_procs();
     conn** my_conns = calloc(num_threads, sizeof(*my_conns));
     for (size_t i = 0; i < num_threads; i++) {
@@ -81,8 +84,9 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
     // set the number of threads to the amount of processors we have
     omp_set_num_threads(num_threads);
 
+
     // calculate the amount of items to fit within memory.
-    size_t num_items = settings->x_benchmark_mem / (sizeof(struct element) + sizeof(void *) + ITEM_SIZE);
+    size_t num_items = settings->x_benchmark_mem / (ITEM_SIZE);
     if (num_items < 100) {
         fprintf(stderr, "WARNING: too little elements\n");
         num_items = 100;
@@ -92,14 +96,8 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
     uint64_t elapsed_us;
 
     fprintf(stderr, "number of threads: %zu\n", num_threads);
-    fprintf(stderr, "element size: %zu bytes\n", sizeof(struct element));
     fprintf(stderr, "item size: %zu bytes\n", ITEM_SIZE);
     fprintf(stderr, "number of keys: %zu\n", num_items);
-    fprintf(stderr, "allocating %zu bytes (%zu MB) for the element array\n",
-        num_items * sizeof(struct element),
-        (num_items * sizeof(struct element)) >> 20);
-
-    struct element* elms = calloc(num_items, sizeof(struct element));
 
     size_t counter = 0;
 
@@ -140,19 +138,36 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
 #pragma omp for schedule(static, 1024)
         for (size_t i = 0; i < num_items; i++) {
-            item* it = item_alloc((char*)&i, sizeof(i), 0, 0, BENCHMARK_ITEM_VALUE_SIZE);
+
+            char key[BENCHMARK_ITEM_KEY_SIZE + 1];
+            snprintf(key, BENCHMARK_ITEM_KEY_SIZE + 1, "%08x", (unsigned int)i);
+
+            char value[BENCHMARK_ITEM_VALUE_SIZE + 1];
+            snprintf(value, BENCHMARK_ITEM_VALUE_SIZE, "value-%016lx", i);
+
+            item* it = item_alloc(key, BENCHMARK_ITEM_KEY_SIZE, 0, 0, BENCHMARK_ITEM_VALUE_SIZE);
             if (!it) {
                 printf("Item was NULL! %zu\n", i);
                 continue;
             }
-            memset(ITEM_data(it), 0, BENCHMARK_ITEM_VALUE_SIZE);
-            elms[i].key = i;
-            uintptr_t ptr = (uintptr_t)&elms[i];
-            memcpy(ITEM_data(it), &ptr, sizeof(uintptr_t));
+
+            memcpy(ITEM_data(it), value, BENCHMARK_ITEM_VALUE_SIZE);
+
             uint64_t cas = 0;
-            if(store_item(it, NREAD_SET, myconn->thread, &cas, CAS_NO_STALE)) {
-                myconn->cas = cas;
+
+            switch (store_item(it, NREAD_SET, myconn->thread, NULL, &cas, CAS_NO_STALE)) {
+                case STORED:
+                    myconn->cas = cas;
+                    break;
+                case EXISTS:
+                    break;
+                case NOT_FOUND:
+                    break;
+                case NOT_STORED:
+                    break;
+                default:
             }
+
             counter++;
             if (counter % 25000000 == 0) {
                 fprintf(stderr, "populate: thread %d added %zu elements. \n", thread_id, counter);
@@ -192,20 +207,17 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
             size_t idx = (i + (g_seed >> 16)) % (num_items);
             g_seed = (214013UL * g_seed + 2531011UL);
 
+            char key[BENCHMARK_ITEM_KEY_SIZE + 1];
+            snprintf(key, BENCHMARK_ITEM_KEY_SIZE + 1, "%08x", (unsigned int)idx);
+
             // char mkey[64];
             // snprintf(mkey, 64, KEY_STRING,  idx);
             //  printf("GET: key=%s, len=%zu\n", mkey, strlen(mkey));
-            item* it = item_get((char*)&idx, sizeof(idx), myconn->thread, DONT_UPDATE);
+            item* it = item_get(key, BENCHMARK_ITEM_KEY_SIZE, myconn->thread, DONT_UPDATE);
             if (!it) {
                 unknown++;
             } else {
-                struct element* e;
-                memcpy(&e, ITEM_data(it), sizeof(void*));
-                if (e->key == idx) {
-                    found++;
-                } else {
-                    unknown++;
-                }
+                found++;
             }
 
             // printf("got item: %p\n", (void *)it);

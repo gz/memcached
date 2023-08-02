@@ -299,6 +299,7 @@ static void settings_init(void) {
     settings.x_benchmark_mem = 1024*1024;
     settings.x_benchmark_queries = 100000;
     settings.x_benchmark_write_ratio = 0;
+    settings.x_benchmark_no_run = false;
 #endif
 }
 
@@ -5031,6 +5032,7 @@ int main (int argc, char **argv) {
         {"extended", required_argument, 0, 'o'},
         {"napi-ids", required_argument, 0, 'N'},
 #ifdef MEMCACHED_INTERNAL_BENCHMARK
+        {"x-benchmark-no-run", no_argument, 0, 'z'},
         {"x-benchmark-mem", required_argument, 0, 'x'},
         {"x-benchmark-queries", required_argument, 0, 'q'},
         {"x-benchmark-write-ratio", required_argument, 0, 'w'},
@@ -5053,6 +5055,9 @@ int main (int argc, char **argv) {
             break;
         case 'w':
             settings.x_benchmark_write_ratio = ((size_t)atoi(optarg));
+            break;
+        case 'z':
+            settings.x_benchmark_no_run = true;
             break;
 #endif
         case 'A':

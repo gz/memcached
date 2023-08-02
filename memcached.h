@@ -564,6 +564,7 @@ struct settings {
     uint32_t sock_cookie_id;
 #endif
 #ifdef MEMCACHED_INTERNAL_BENCHMARK
+    bool x_benchmark_no_run;
     size_t x_benchmark_mem;
     size_t x_benchmark_queries;
     size_t x_benchmark_write_ratio;
