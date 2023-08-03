@@ -166,6 +166,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
                 case NOT_STORED:
                     break;
                 default:
+                    break;
             }
 
             counter++;
