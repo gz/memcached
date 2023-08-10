@@ -9,7 +9,7 @@
 #include "benchmark_internal.h"
 #include "memcached.h"
 
-#define ITEM_SIZE (sizeof(item) + sizeof(size_t) + BENCHMARK_ITEM_VALUE_SIZE + BENCHMARK_ITEM_KEY_SIZE)
+#define ITEM_SIZE (sizeof(item) + BENCHMARK_ITEM_VALUE_SIZE + BENCHMARK_ITEM_KEY_SIZE + 34)
 
 // ./configure --disable-extstore --enable-static
 
