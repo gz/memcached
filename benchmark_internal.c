@@ -258,6 +258,9 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
         size_t g_seed = (214013UL * thread_id + 2531011UL);
 
+        struct timeval thread_start, thread_current, thread_elapsed;
+        gettimeofday(&thread_start, NULL);
+
 #pragma omp for schedule(static)
         for (size_t i = 0; i < (num_threads * settings->x_benchmark_queries); i++) {
             size_t idx = (i + (g_seed >> 16)) % (num_items);
@@ -274,6 +277,14 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
                 unknown++;
             } else {
                 found++;
+            }
+
+            if (((unknown + found ) % 1000000) == 0) {
+                gettimeofday(&thread_current, NULL);
+                timersub(&thread_current, &thread_start, &thread_elapsed);
+                thread_start = thread_current;
+                uint64_t thread_elapsed_us = (thread_elapsed.tv_sec * 1000000) + thread_elapsed.tv_usec;
+                fprintf(stderr, "thread.%d executed 100000 queries in %lu us\n", thread_id, thread_elapsed_us);
             }
 
             // printf("got item: %p\n", (void *)it);
