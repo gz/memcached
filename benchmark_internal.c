@@ -66,25 +66,24 @@ static void *send_packets_thread(void * arg) {
 
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (s == -1) {
-        fprintf(stderr, "SEND PACKETS: FAILED TO SETUP SOCKET!\n");
+        perror("SEND PACKETS: FAILED TO SETUP SOCKET!\n");
         return NULL;
     }
 
 
     memset((char *) &si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(1234);
-    si_me.sin_addr.s_addr = htonl(0xac1f0014); // 172.31.0.20
+    si_me.sin_port = htons(11000);
+    si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+    if (bind(s, (struct sockaddr*) &si_me, sizeof(si_me))== -1) {
+        perror("SEND PACKETS: COULD NOT BIND!\n");
+        return NULL;
+    }
 
     memset((char *) &si_other, 0, sizeof(si_other));
     si_other.sin_family = AF_INET;
     si_other.sin_port = htons(1234);
     si_other.sin_addr.s_addr = htonl(0xac1f0014); // 172.31.0.20
-
-    if (bind(s, (struct sockaddr*) &si_me, sizeof(si_me))== -1) {
-        fprintf(stderr, "SEND PACKETS: COULD NOT BIND!\n");
-        return NULL;
-    }
 
     while (1) {
         sleep(1);
