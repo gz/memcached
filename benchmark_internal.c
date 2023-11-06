@@ -112,7 +112,6 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 #ifdef __linux__
         fprintf(stderr, "skipping networking thread\n");
 #else
-        #error bar
         if (pthread_create(&network_thread, NULL, send_packets_thread, NULL) != 0) {
             fprintf(stderr, "COULD NOT CREATE PTHREAD!\n");
         }
