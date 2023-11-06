@@ -53,7 +53,55 @@ void internal_benchmark_config(struct settings* settings)
     fprintf(stderr,"------------------------------------------\n");
 }
 
+#ifndef __linux__
+static void *send_packets_thread(void * arg) {
+    fprintf(stderr, "networking hack thread started\n");
 
+    struct sockaddr_in si_me, si_other;
+    int s, blen, slen = sizeof(si_other);
+    char buf[65];
+    snprintf(buf, 64, "HELLO");
+    blen = strlen(buf);
+
+
+    s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (s == -1) {
+        fprintf(stderr, "SEND PACKETS: FAILED TO SETUP SOCKET!\n");
+        return NULL;
+    }
+
+
+    memset((char *) &si_me, 0, sizeof(si_me));
+    si_me.sin_family = AF_INET;
+    si_me.sin_port = htons(1234);
+    si_me.sin_addr.s_addr = htonl(0xac1f0014); // 172.31.0.20
+
+    memset((char *) &si_other, 0, sizeof(si_other));
+    si_other.sin_family = AF_INET;
+    si_other.sin_port = htons(1234);
+    si_other.sin_addr.s_addr = htonl(0xac1f0014); // 172.31.0.20
+
+    if (bind(s, (struct sockaddr*) &si_me, sizeof(si_me))== -1) {
+        fprintf(stderr, "SEND PACKETS: COULD NOT BIND!\n");
+        return NULL;
+    }
+
+    while (1) {
+        sleep(1);
+
+        //send answer back to the client
+        int r = sendto(s, buf, blen, 0, (struct sockaddr*) &si_other, slen);
+        if (r == -1) {
+            perror("SEND PACKETS: SENDING FAILED!\n");
+        }
+
+        sched_yield();
+    }
+}
+
+static pthread_t network_thread;
+
+#endif
 
 void internal_benchmark_run(struct settings* settings, struct event_base *main_base)
 {
@@ -61,10 +109,17 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
         fprintf(stderr, "=====================================\n");
         fprintf(stderr, "INTERNAL BENCHMARK SKIPPING\n");
         fprintf(stderr, "=====================================\n");
+#ifdef __linux__
+        fprintf(stderr, "skipping networking thread\n");
+#else
+        #error bar
+        if (pthread_create(&network_thread, NULL, send_packets_thread, NULL) != 0) {
+            fprintf(stderr, "COULD NOT CREATE PTHREAD!\n");
+        }
+#endif
+
         return;
     }
-
-    printf("------------------------------------------");
 
     fprintf(stderr, "=====================================\n");
     fprintf(stderr, "INTERNAL BENCHMARK STARTING\n");

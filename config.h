@@ -139,6 +139,9 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #define HAVE__BOOL 1
 
+/* Set to nonzero if you want 64bit client flags */
+/* #undef LARGE_CLIENT_FLAGS */
+
 /* Machine need alignment */
 /* #undef NEED_ALIGN */
 
