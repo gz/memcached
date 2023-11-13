@@ -93,8 +93,6 @@ static void *send_packets_thread(void * arg) {
         if (r == -1) {
             perror("SEND PACKETS: SENDING FAILED!\n");
         }
-
-        sched_yield();
     }
 }
 
@@ -154,15 +152,14 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
     size_t counter = 0;
 
-    // fprintf(stderr, "Prefilling slabs\n");
-    // gettimeofday(&start, NULL);
-    // slabs_prefill_global();
+    fprintf(stderr, "Prefilling slabs\n");
+    gettimeofday(&start, NULL);
+    slabs_prefill_global();
 
-    // gettimeofday(&end, NULL);
-    // struct timeval elapsed;
-    // timersub(&end, &start, &elapsed);
-    // uint64_t elapsed_us = (elapsed.tv_sec * 1000000) + elapsed.tv_usec;
-    // fprintf(stderr, "Prefilling slabs took %lu ms\n", elapsed_us / 1000);
+    gettimeofday(&end, NULL);
+    timersub(&end, &start, &elapsed);
+    elapsed_us = (elapsed.tv_sec * 1000000) + elapsed.tv_usec;
+    fprintf(stderr, "Prefilling slabs took %lu ms\n", elapsed_us / 1000);
 
     fprintf(stderr, "Populating %zu / %zu key-value pairs.\n", counter, num_items);
 
@@ -174,6 +171,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
     {
         /* pin threads */
         int thread_id = omp_get_thread_num();
+        size_t my_counter=0;
 
 #ifdef __linux__
         // cpu_set_t my_set;
@@ -189,8 +187,15 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 #endif
         conn* myconn = my_conns[thread_id];
 
+        size_t num_added = 0;
+        size_t num_not_added = 0;
+        size_t num_existed = 0;
+        size_t num_other_errors = 0;
+
 #pragma omp for schedule(static, 1024)
         for (size_t i = 0; i < num_items; i++) {
+
+            my_counter++;
 
             char key[BENCHMARK_ITEM_KEY_SIZE + 1];
             snprintf(key, BENCHMARK_ITEM_KEY_SIZE + 1, "%08x", (unsigned int)i);
@@ -207,27 +212,29 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
             memcpy(ITEM_data(it), value, BENCHMARK_ITEM_VALUE_SIZE);
 
             uint64_t cas = 0;
-
             switch (store_item(it, NREAD_SET, myconn->thread, NULL, &cas, CAS_NO_STALE)) {
                 case STORED:
+                    num_added++;
                     myconn->cas = cas;
                     break;
                 case EXISTS:
-                    break;
-                case NOT_FOUND:
+                    num_existed++;
+                    num_not_added++;
                     break;
                 case NOT_STORED:
+                    num_not_added++;
                     break;
                 default:
+                    num_other_errors++;
                     break;
             }
 
-            counter++;
-            if (counter % 25000000 == 0) {
+            if ((my_counter % 1000000) == 0) {
                 fprintf(stderr, "populate: thread %d added %zu elements. \n", thread_id, counter);
             }
         }
-        fprintf(stderr, "populate: thread %d done. \n", thread_id);
+        counter = my_counter;
+        fprintf(stderr, "populate: thread %d done. added %zu elements, %zu not added of which %zu already existed\n", thread_id, num_added, num_not_added, num_existed);
     }
 
     gettimeofday(&end, NULL);
@@ -251,8 +258,11 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
         int thread_id = omp_get_thread_num();
         size_t unknown = 0;
         size_t found = 0;
+        uint64_t values = 0;
 
         conn* myconn = my_conns[thread_id];
+
+        fprintf(stderr,"thread:%i uses connection %p\n", thread_id, (void *)myconn);
 
         size_t g_seed = (214013UL * thread_id + 2531011UL);
 
@@ -267,14 +277,13 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
             char key[BENCHMARK_ITEM_KEY_SIZE + 1];
             snprintf(key, BENCHMARK_ITEM_KEY_SIZE + 1, "%08x", (unsigned int)idx);
 
-            // char mkey[64];
-            // snprintf(mkey, 64, KEY_STRING,  idx);
-            //  printf("GET: key=%s, len=%zu\n", mkey, strlen(mkey));
             item* it = item_get(key, BENCHMARK_ITEM_KEY_SIZE, myconn->thread, DONT_UPDATE);
             if (!it) {
                 unknown++;
             } else {
                 found++;
+                // access the item
+                values ^= *((uint64_t *)ITEM_data(it));
             }
 
             if (((unknown + found ) % 1000000) == 0) {
@@ -284,14 +293,10 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
                 uint64_t thread_elapsed_us = (thread_elapsed.tv_sec * 1000000) + thread_elapsed.tv_usec;
                 fprintf(stderr, "thread.%d executed 100000 queries in %lu us\n", thread_id, thread_elapsed_us);
             }
-
-            // printf("got item: %p\n", (void *)it);
-            // printf("got value[%zu]: %s\n",i, (char *)ITEM_data(it));
         }
 
         num_queries += unknown + found;
-        // printf("thread:%i of %i found %zu, missed %zu\n", thread_id,
-        //       omp_get_num_threads(), found, unknown);
+        fprintf(stderr,"thread:%i done. executed %zu found %zu, missed %zu  (checksum: %lx)\n", thread_id, num_queries, found, unknown, values);
     }
     gettimeofday(&end, NULL);
 
@@ -301,33 +306,6 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
     fprintf(stderr, "benchmark took %lu ms\n", elapsed_us / 1000);
     fprintf(stderr, "benchmark took %lu queries / second\n", (num_queries / elapsed_us) * 1000000);
     fprintf(stderr, "benchmark executed %lu / %lu queries\n", num_queries, (num_threads * settings->x_benchmark_queries));
-
-    //}
-    /*
-    printf("do the benchmark...\n");
-    char *mkey = "hello";
-    size_t nmkey = 5;
-    item *it = item_alloc(mkey, nmkey, 0, 0, 7);
-    printf("copy payload...\n");
-    memcpy(ITEM_data(it), "foobar", 6);
-
-    conns[0] = conn_new(0, 0, 0, 0, 0, NULL);
-
-    store_item(it, NREAD_SET, conns[0]);
-
-    printf("get the key... %p\n",  (void *)conns[0]);
-    //ITEM_set_cas(it, req_cas_id);
-
-    mkey = "hello";
-    it = item_get(mkey, 5, conns[0], DO_UPDATE);
-    printf("got item: %p\n", (void *)it);
-    printf("got value: %s\n", (char *)ITEM_data(it));
-
-    //it = item_touch(key, nkey, realtime(exptime_int), conn[0]);
-    //void  item_remove(item *it);
-    //int   item_replace(item *it, item *new_it, const uint64_t hv);
-    //it = item_touch(key, nkey, realtime(exptime), conn[0])
-  */
 
     fprintf(stderr, "terminating.\n");
     fprintf(stderr, "===============================================================================\n");
