@@ -11,6 +11,22 @@
 
 #define ITEM_SIZE (sizeof(item) + BENCHMARK_ITEM_VALUE_SIZE + BENCHMARK_ITEM_KEY_SIZE + 34)
 
+void start_dynrep_protocol(void) {
+    
+    register int rdi __asm__ ("rdi") = 2;
+    register int rsi __asm__ ("rsi") = 11;
+
+    register int rdx __asm__ ("rdx") = 1;
+    register int r10 __asm__ ("r10") = 99;
+
+    __asm__ __volatile__ (
+        "syscall"
+        :
+        : "r" (rdi), "r" (rsi), "r" (rdx), "r" (r10)
+        : "rcx", "r11", "memory"
+    );
+}
+
 // ./configure --disable-extstore --enable-static
 
 void internal_benchmark_config(struct settings* settings)
@@ -246,6 +262,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 
     fprintf(stderr, "Executing %zu queries with %zu threads.\n", num_threads * settings->x_benchmark_queries, num_threads);
 
+
     gettimeofday(&start, NULL);
 
     size_t num_queries = 0;
@@ -253,6 +270,7 @@ void internal_benchmark_run(struct settings* settings, struct event_base *main_b
 #pragma omp parallel reduction(+ \
                                : num_queries)
     {
+        start_dynrep_protocol();
 
         /* pin threads */
         int thread_id = omp_get_thread_num();
